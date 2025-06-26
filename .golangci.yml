@@ -1,0 +1,119 @@
+linters:
+  disable-all: true
+  enable:
+    # Critical checks
+    - errcheck        # Essential for SSH operations where errors are critical
+    - gosec          # Security is crucial for an SSH client
+    - govulncheck    # Check for known vulnerabilities
+    - staticcheck    # Comprehensive static analysis
+    
+    # Code quality
+    - govet          # Standard Go checks
+    - gosimple       # Simplify code
+    - unused         # Find unused code
+    - ineffassign    # Find ineffective assignments
+    
+    # Style and formatting
+    - gofumpt        # Stricter gofmt
+    - goimports      # Handle imports
+    - whitespace     # Clean whitespace
+    - misspell       # Catch spelling errors in comments and strings
+    
+    # Project-specific needs
+    - gocritic       # Additional checks useful for TUI apps
+    - prealloc       # Suggest slice preallocation (performance)
+    - bodyclose      # Ensure response bodies are closed (for future HTTP features)
+    - nilerr         # Catch error handling issues
+    - unparam        # Find unused parameters
+    - gocyclo        # Keep functions manageable
+
+linters-settings:
+  govet:
+    # Enable all analyzers
+    enable-all: true
+    disable:
+      - fieldalignment  # Too strict for our TUI structs
+      - shadow         # Too noisy for Bubble Tea patterns
+  
+  gosec:
+    excludes:
+      - G204  # Ignore command execution (needed for SSH)
+    config:
+      global:
+        audit: true
+  
+  gocyclo:
+    # Higher threshold for TUI Update/View functions
+    min-complexity: 20
+  
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - commentFormatting  # Too strict for our needs
+      - hugeParam         # TUI structs can be large
+  
+  prealloc:
+    # Slice preallocation suggestions
+    simple: true
+    range-loops: true
+    for-loops: true
+  
+  goimports:
+    # Local import configuration
+    local-prefixes: "lode"
+
+issues:
+  exclude-rules:
+    # TUI-specific exclusions
+    - path: internal/tui/.*\.go
+      linters:
+        - gocyclo     # TUI functions can be complex
+        - funlen      # View/Update functions can be long
+      text: "function is too complex"
+    
+    # Test exclusions
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - gocyclo
+    
+    # Generated code
+    - path: \.gen\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+    
+    # Bubble Tea patterns
+    - text: "func (m Model) Update"
+      linters:
+        - gocyclo
+        - funlen
+    - text: "func (m Model) View"
+      linters:
+        - gocyclo
+        - funlen
+
+  # Reasonable limits
+  max-issues-per-linter: 20
+  max-same-issues: 3
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+    - testdata
+  skip-files:
+    - ".*\\.gen\\.go$"
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true
+  uniq-by-line: true 
